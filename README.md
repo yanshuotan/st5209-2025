@@ -15,9 +15,9 @@ This course provides an introduction to the analysis of time series data. Time s
 This course will have a [blended learning](https://cit.nus.edu.sg/blended-learning-2-0-2/) format, which means that half the weekly lecture content will be delivered via online lecture videos.
 Students are expected to have viewed and understood the lecture video before coming for in-person class.
 
-**Section 1**: Thursdays 7-8:30pm, LT28
+**Section 1**: Thursdays 7-8:30pm, LT34
 
-**Section 2**: Tuesdays 7-8:30pm, LT28
+**Section 2**: Tuesdays 7-8:30pm, LT34
 
 ## Course Outline
 1. Getting started with time series data
