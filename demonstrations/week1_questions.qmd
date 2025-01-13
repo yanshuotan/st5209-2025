@@ -1,0 +1,35 @@
+---
+title: "Week 1 Demonstration"
+format: html
+editor: visual
+---
+
+## Set up
+
+We always load the following packages.
+
+```{r}
+#| message: FALSE
+library(fpp3)
+library(tidyverse)
+```
+
+## 1. Downloading and wrangling data
+
+Download this [dataset](https://www.kaggle.com/datasets/robikscube/hourly-energy-consumption) on energy consumption from Kaggle. Save it into the raw data folder. Load the dataset and try to turn it into a tsibble `elec_consumption`. What error do you get? Try to deal with it.
+
+## 2. Time plots
+
+Make a time plot of `elec_consumption`. You should observe [overplotting](https://www.displayr.com/what-is-overplotting/). In other words, it is hard to see what is going on because too many details are plotted. What can you do to extract more meaningful information? Try to implement your idea.
+
+## 3. Seasonal plots
+
+Make a seasonal plot of `elec_consumption`. You should experience an error. How can you fix it? What period did `gg_season()` automatically select? Try changing the period. Interpret the patterns observed in all your plots.
+
+## 4. Lag plots
+
+Make a lag plot of `elec_consumption`. What issues arise? How can you make the plot look like what was shown in the lecture video?
+
+## 5. Finding time series data
+
+Find some other interesting time series datasets on the internet and experiment with them. Are trend, seasonality, and cycles the only patterns you can identify?
