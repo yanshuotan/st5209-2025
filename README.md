@@ -66,7 +66,7 @@ Students are expected to have viewed and understood the lecture video before com
 - Please submit all your questions via this platform instead of emailing the course staff.
 
 ## Course Repo
-- This repo will contain all materials for in-person class and assignments.
+- This [repo](https://github.com/yanshuotan/st5209-2025) will contain all materials for in-person class and assignments.
 
 ## Canvas Site
 - The Canvas site will be used for course announcements and for submitting assignments and quizzes.
