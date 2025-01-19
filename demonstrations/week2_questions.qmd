@@ -1,0 +1,66 @@
+---
+title: "Week 2 Demonstration"
+format: html
+editor: visual
+---
+
+## Set up
+
+We always load the following packages.
+
+```{r}
+#| message: FALSE
+library(fpp3)
+library(tidyverse)
+```
+
+## 1. Lags and differencing
+
+Consider the `aus_arrivals` dataset and try to plot lagged arrival values. What is strange about this plot? How can you fix it?
+
+## 2. Moving averages
+
+Using the arrivals from Japan time series within `aus_arrivals`, do the following.
+
+-   Compute a moving average with window size 2 using two different methods: using `slide_dbl` and manually (i.e. without using `slide_dbl`). Show that you get the same answer.
+
+-   Plot moving averages with a few different window sizes to see the effect of varying the window size. Which window size would you pick?
+
+## 3. Log transform and differencing
+
+Let's consider the sales of diabetes drugs in Australia. The following code loads and plots this time series.
+
+```{r}
+diabetes <- read_rds("../_data/cleaned/diabetes.rds")
+diabetes |> autoplot()
+```
+
+-   Apply a log transformation and plot the result. What does it do to the seasonal fluctuations?
+
+-   Take a difference of the log transformed time series. What is the meaning of the resulting time series?
+
+-   Take a seasonal difference of the log transformed time series. What is the meaning of the resulting time series? How does it compare with the time series obtained in the previous part?
+
+## 4. Computing classical decomposition
+
+Compute a classical decomposition for the following time series without using the `classical_decomposition()` function.
+
+```{r}
+aus_arrivals_jap <- aus_arrivals |>
+  filter(Origin == "Japan") |>
+  select(Quarter, Arrivals)
+```
+
+## 5. Classical vs STL decomposition
+
+Start with the following code snippet creating a time series of passengers flying on Ansett Airlines. Perform classical and STL decompositions and comment on their differences. Which do you trust more?
+
+```{r}
+melsyd_economy <- ansett |>
+  filter(Airports == "MEL-SYD", Class == "Economy") |>
+  mutate(Passengers = Passengers/1000)
+autoplot(melsyd_economy, Passengers) +
+  labs(y = "Passengers ('000)")
+```
+
+## 
