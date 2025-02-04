@@ -1,0 +1,78 @@
+---
+title: "Week 4 Demonstration"
+format: html
+editor: visual
+  markdown: 
+    wrap: 72
+---
+
+## Set up
+
+```{r}
+#| message: FALSE
+library(fpp3)
+library(tidyverse)
+library(slider)
+library(gridExtra)
+library(broom)
+```
+
+## 1. Drift vs linear trend method
+
+Starting with the following code snippet, compute forecasts using the drift method and the linear trend method for the population of Australia for the next 50 years .
+
+```{r}
+global_economy |> filter(Country == "Australia")
+```
+
+Which forecast looks better? Which prediction intervals are more realistic?
+
+## 2. Seasonal naive method with drift
+
+The seasonal naive method with drift combines the seasonal naive and drift methods. It gives the forecast:
+
+$$
+\hat x_{n+h|n} = x_{n - k} + \frac{(h-k)/p}{n-p}\sum_{t=p+1}^n(x_t - x_{t-p}),
+$$ where $k = -h~\text{mod}~p$. The forecast formula is not particularly important. The method can be fit using the code `SNAIVE(y ~ drift())`.
+
+## 3. Forecasting
+
+Which of `NAIVE`, `SNAIVE`, `NAIVE(y ~ drift())` and `SNAIVE(y ~ drift())` are most appropriate for the following datasets?
+
+-   Bricks (`aus_production`)
+
+-   Household wealth (`hh_budget`)
+
+## 4. Prediction intervals
+
+Consider the `aus_arrivals` dataset. Filter the time series of arrivals from Japan to before 1995, and fit `NAIVE`, `SNAIVE`, `NAIVE(y ~ drift())` and `SNAIVE(y ~ drift())` . Use the fitted models to forecast the rest of the time series. Do their prediction intervals contain the truth?
+
+## 5. Train test split
+
+```{r}
+takeaway <- aus_retail |>
+  filter(Industry == "Takeaway food services") |>
+  summarise(Turnover = sum(Turnover))
+```
+
+a.  Starting with the above snippet, create a training set for Australian takeaway food turnover (`aus_retail`) by withholding the last four years as a test set.
+
+b.  Fit all the appropriate benchmark methods to the training set and forecast the periods covered by the test set.
+
+c.  Compute the accuracy of your forecasts. Which method does best?
+
+d.  Make a time plot of the forecasts to verify this.
+
+e.  Which error metrics are preferred and why? How to interpret them?
+
+f.  What is a problem with doing a train test split?
+
+## 6. Cross-validation
+
+a.  Perform cross-validation for Australian takeaway food turnover with $h=4$.
+
+b.  Why is the error smaller compared to a single train-test split?
+
+c.  Why might we want to set `.step` to a larger value? What goes wrong if we set it to be too large a value?
+
+d.  If we are mostly interested in forecast accuracy 4 months ahead, how should we change the code to focus on this task? How do these errors compare to before?
