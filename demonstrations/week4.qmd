@@ -1,0 +1,279 @@
+---
+title: "Week 4 Demonstration"
+format: html
+editor: visual
+  markdown: 
+    wrap: 72
+---
+
+## Set up
+
+```{r}
+#| message: FALSE
+library(fpp3)
+library(tidyverse)
+library(slider)
+library(gridExtra)
+library(broom)
+```
+
+## 1. Drift vs linear trend method
+
+Starting with the following code snippet, compute forecasts using the drift method and the linear trend method for the population of Australia for the next 50 years .
+
+```{r}
+global_economy |> filter(Country == "Australia")
+```
+
+Which forecast looks better? Which prediction intervals are more realistic?
+
+------------------------------------------------------------------------
+
+```{r}
+global_economy |> 
+  filter(Country == "Australia") |>
+  model(LinTrend = TSLM(Population ~ trend()), 
+        Drift = NAIVE(Population ~ drift())) |> 
+  forecast(h = 50) |> 
+  autoplot(global_economy)
+```
+
+The drift method forecast looks better as it starts closer to the last value of the time series.
+
+The drift method's prediction intervals become wider over time, while the linear trend method prediction intervals do not. The former is thus more realistic.
+
+------------------------------------------------------------------------
+
+## 2. Seasonal naive method with drift
+
+The seasonal naive method with drift combines the seasonal naive and drift methods. It gives the forecast:
+
+$$
+\hat x_{n+h|n} = x_{n - k} + \frac{(h-k)/p}{n-p}\sum_{t=p+1}^n(x_t - x_{t-p}),
+$$ where $k = -h~\text{mod}~p$. The forecast formula is not particularly important. The method can be fit using the code `SNAIVE(y ~ drift())`.
+
+------------------------------------------------------------------------
+
+## 3. Forecasting
+
+Which of `NAIVE`, `SNAIVE`, `NAIVE(y ~ drift())` and `SNAIVE(y ~ drift())` are most appropriate for the following datasets?
+
+-   Bricks (`aus_production`)
+
+-   Household wealth (`hh_budget`)
+
+------------------------------------------------------------------------
+
+```{r}
+aus_production |>
+  autoplot(Bricks)
+```
+
+The time plot shows strong seasonality and a possibly nonlinear trend.
+
+We hence try out seasonal naive with and without drift.
+
+```{r}
+aus_production |>
+  filter(!is.na(Bricks)) |>
+  model(SNaive = SNAIVE(Bricks),
+        SNaiveDrift = SNAIVE(Bricks ~ drift())) |>
+  forecast() |>
+  autoplot(aus_production, level = NULL)
+```
+
+```{r}
+hh_budget |>
+  autoplot(Wealth)
+```
+
+There does not seem to be seasonality in any of the four time series, but they seem to exhibit some upward trend. Hence, we will try applying the naive method with drift.
+
+```{r}
+hh_budget |>
+  model(NAIVE(Wealth ~ drift())) |>
+  forecast(h = 10) |>
+  autoplot(hh_budget)
+```
+
+------------------------------------------------------------------------
+
+## 4. Prediction intervals
+
+Consider the `aus_arrivals` dataset. Filter the time series of arrivals from Japan to before 1995, and fit `NAIVE`, `SNAIVE`, `NAIVE(y ~ drift())` and `SNAIVE(y ~ drift())` . Use the fitted models to forecast the rest of the time series. Do their prediction intervals contain the truth?
+
+------------------------------------------------------------------------
+
+```{r}
+#| warning: FALSE
+aus_jap_before95 <- aus_arrivals |>
+  filter(Origin == "Japan") |>
+  filter_index(~ "1994 Q4")
+
+aus_jap_fc <- aus_jap_before95 |>
+  model(Naive = NAIVE(Arrivals),
+        SNaive = SNAIVE(Arrivals),
+        Drift = NAIVE(Arrivals ~ drift()),
+        SDrift = SNAIVE(Arrivals ~ drift())) |>
+  forecast(h = 71)
+```
+
+```{r}
+aus_jap_fc |> autoplot(aus_jap_before95, level = NULL)
+```
+
+The seasonal naive method with drift seems like the best method, looking at the historical data from before 1995, but its prediction intervals do not contain the future values of the time series.
+
+```{r}
+aus_jap_fc |> filter(.model == "SDrift") |>
+  autoplot(aus_arrivals)
+```
+
+The moral of the story is that, as mentioned in the video lecture, we should not take prediction intervals at face value, as they depend on the fitted model being "correct". This is rarely the case, especially given the possibility of future unforeseen (and therefore unmodeled) scenarios.
+
+------------------------------------------------------------------------
+
+## 5. Train test split
+
+```{r}
+takeaway <- aus_retail |>
+  filter(Industry == "Takeaway food services") |>
+  summarise(Turnover = sum(Turnover))
+```
+
+a.  Starting with the above snippet, create a training set for Australian takeaway food turnover (`aus_retail`) by withholding the last four years as a test set.
+
+------------------------------------------------------------------------
+
+First, we make a time plot to inspect the time series.
+
+```{r}
+takeaway |> autoplot(Turnover)
+```
+
+The code to create the train set is as follows.
+
+```{r}
+takeaway_train <- takeaway |> 
+  slice_head(n = nrow(takeaway) - (4 * 12))
+```
+
+b.  Fit all the appropriate benchmark methods to the training set and forecast the periods covered by the test set.
+
+------------------------------------------------------------------------
+
+```{r}
+fit <- takeaway_train |>
+  model(
+    naive = NAIVE(Turnover),
+    drift = RW(Turnover ~ drift()),
+    mean = MEAN(Turnover),
+    snaive = SNAIVE(Turnover),
+    snaive_drift = SNAIVE(Turnover ~ drift())
+  )
+fc <- fit |> forecast(h = "4 years")
+```
+
+------------------------------------------------------------------------
+
+c.  Compute the accuracy of your forecasts. Which method does best?
+
+------------------------------------------------------------------------
+
+```{r}
+fc |>
+  accuracy(takeaway) |>
+  arrange(MASE)
+```
+
+------------------------------------------------------------------------
+
+d.  Make a time plot of the forecasts to verify this.
+
+------------------------------------------------------------------------
+
+```{r}
+fc |> 
+  autoplot(takeaway, level = NULL)
+```
+
+------------------------------------------------------------------------
+
+e.  Which error metrics are preferred and why? How to interpret them?
+
+------------------------------------------------------------------------
+
+RMSSE and MASE are preferred because they are more interpretable. They are MSE and MASE divided by the one-step-ahead training error of the naive method. This is similar logic to $R^2$.
+
+------------------------------------------------------------------------
+
+f.  What is a problem with doing a train test split?
+
+------------------------------------------------------------------------
+
+Cannot focus on a specific forecast horizon.
+
+------------------------------------------------------------------------
+
+## 6. Cross-validation
+
+a.  Perform cross-validation for Australian takeaway food turnover with $h=4$.
+
+------------------------------------------------------------------------
+
+```{r}
+takeaway |> 
+  stretch_tsibble(.init = 50, .step = 5) |>
+  model(
+    naive = NAIVE(Turnover),
+    drift = RW(Turnover ~ drift()),
+    mean = MEAN(Turnover),
+    snaive = SNAIVE(Turnover),
+    snaive_drift = SNAIVE(Turnover ~ drift())
+  ) |>
+  forecast(h = 4) |>
+  accuracy(takeaway)
+```
+
+------------------------------------------------------------------------
+
+b.  Why is the error smaller compared to a single train-test split?
+
+------------------------------------------------------------------------
+
+Because the CV error is measured with respect to forecasts that are 1 to 4 steps ahead. On the other hand, the train-test split error involved that of forecasts up to 48 steps ahead.
+
+------------------------------------------------------------------------
+
+c.  Why might we want to set `.step` to a larger value? What goes wrong if we set it to be too large a value?
+
+------------------------------------------------------------------------
+
+`.step` controls the number of splits made. If it is too small, we have many splits, which may lead to high computational overhead. On the other hand, if it is too big, we have too few splits, which means that we compute the error over too few data points.
+
+------------------------------------------------------------------------
+
+d.  If we are mostly interested in forecast accuracy 4 months ahead, how should we change the code to focus on this task?
+
+------------------------------------------------------------------------
+
+```{r}
+takeaway_fc <- takeaway |> 
+  stretch_tsibble(.init = 50, .step = 5) |>
+  model(
+    naive = NAIVE(Turnover),
+    drift = RW(Turnover ~ drift()),
+    mean = MEAN(Turnover),
+    snaive = SNAIVE(Turnover),
+    snaive_drift = SNAIVE(Turnover ~ drift())
+  ) |>
+  forecast(h = 4)
+
+takeaway_fc |>
+  group_by(.id, .model) |>
+  mutate(h = row_number()) |>
+  ungroup() |>
+  filter(h == 4) |>
+  as_fable(response = "Turnover", distribution = Turnover) |>
+  accuracy(takeaway)
+```
