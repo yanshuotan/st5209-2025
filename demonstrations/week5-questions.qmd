@@ -1,0 +1,66 @@
+---
+title: "Week 5 Demonstration"
+format: html
+editor: visual
+---
+
+## Set up
+
+```{r}
+#| message: FALSE
+library(fpp3)
+library(tidyverse)
+library(slider)
+```
+
+## 1. White noise and ACF plots
+
+Create a time series of length 200 comprising i.i.d. standard Gaussian measurements. Make a time plot of the time series as well as an ACF plot. Compare this with the remainder term from an STL decomposition of `aus_arrivals_jap`. What do you observe?
+
+## 2. Summary statistics
+
+Glance through the summary statistics described in [Chapter 4.4](https://otexts.com/fpp3/other-features.html) of Hyndman and Athanasopoulos (2021). What do the following summary statistics compute?
+
+-   Strength of trend
+-   Strength of seasonality
+-   `shift_level_max`
+-   `shift_level_index`
+-   `var_tiled_var`
+
+When would they be useful?
+
+## 3. EDA with summary statistics
+
+The follow code snippet generates summary statistics for the various time series in the `tourism` dataset.
+
+```{r}
+#| eval: FALSE
+tourism_features <- tourism |>
+  features(Trips, feature_set(pkgs = "feasts"))
+```
+
+Make a scatter plot of seasonal strength against trend strength and color the points according to `Purpose`. What can you tell from the plot?
+
+Perform PCA on the `tourism_features` dataframe and make a scatter plot of the first two PCs. What do you observe?
+
+## 4. Seasonal periods and frequencies
+
+Consider the time series $(y_t)$ generated using the following code snippet.
+
+```{r}
+y_dat <- tibble(t = 1:100,
+       y = t %% 10) |>
+  as_tsibble(index = t)
+```
+
+Plot a periodogram for $(y_t)$. What periods do the peaks correspond to? Why are there multiple peaks when $(y_t)$ was defined using a seasonal period of 10?
+
+## 5. Periodogram and filters
+
+Consider tourist arrivals to Australia from the UK, contained in the `aus_arrivals` dataset.
+
+a.  Plot a periodogram for the time series of arrivals from UK. Where are the peaks?
+
+b.  Apply a moving average of window size 4 to the time series. What happens to the periodogram?
+
+c.  Apply a difference transformation to the time series. What happens to the periodogram?
