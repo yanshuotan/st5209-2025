@@ -32,18 +32,21 @@ library(fpp3)
 
 `tourism` contains quarterly visitor nights (in thousands) from 1998 to 2017 for 76 regions of Australia.
 
-a.  Extract data from the Gold Coast region using `filter()` and aggregate total overnight trips (sum over `Purpose`) using `summarise()`. Call this new dataset `gc_tourism`.
+a.  Extract data from the Gold Coast region using `filter()` and aggregate total overnight trips using `summarise()`. Call this new dataset `gc_tourism`.
 
+```{=html}
 <!-- -->
-
+```
 b.  Using `slice()` or `filter()`, create three training sets for this data excluding the last 1, 2 and 3 years. For example, `gc_train_1 <- gc_tourism |> slice(1:(n()-4))`.
 
+```{=html}
 <!-- -->
-
+```
 c.  Compute and plot one year of forecasts for each training set using the seasonal naive (`SNAIVE()`) method. Call these `gc_fc_1`, `gc_fc_2` and `gc_fc_3`, respectively. (Hint: You may combine the mable objects from each model into a single mable using `bind_cols`)
 
+```{=html}
 <!-- -->
-
+```
 d.  Use `accuracy()` to compare the test set forecast accuracy using MASE. What can you conclude about the relative performance of the different models? Explain your answer.
 
 ## Question 2 (ACF plots, Q2.9 in FPP)
@@ -107,7 +110,7 @@ predict(knn_fit, newdata = test_feats)
 
 Consider the `vic_elec` dataset from the `tsibbledata` package.
 
-a.  Compute and plot the periodogram for `Demand`. What frequencies and periods do the 7 highest peaks correspond to? *Hint: You may use the* `periodogram` *function provided in* `plot_util.py` *and change the* `max_freq` *setting to see at different resolutions.*
+a.  Compute and plot the periodogram for `Demand`. What frequencies and periods do the 7 highest peaks correspond to? *Hint: You may use the* `periodogram` *function provided in* `plot_util.R` *and change the* `max_freq` *setting to see at different resolutions.*
 
 b.  Perform an STL decomposition for `Demand`. Plot the periodogram for `season_year`, `season_week`, and `season_day`. Which of the original periodogram peaks appear in each of these periodograms?
 
