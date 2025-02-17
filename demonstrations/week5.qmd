@@ -1,0 +1,215 @@
+---
+title: "Week 3 Demonstration"
+format: html
+editor: visual
+---
+
+## Set up
+
+```{r}
+#| message: FALSE
+library(fpp3)
+library(tidyverse)
+library(slider)
+library(gridExtra)
+library(broom)
+```
+
+## 1. White noise and ACF plots
+
+*Create a time series of length 200 comprising i.i.d. standard Gaussian measurements.* *Make a time plot of the time series as well as an ACF plot.* *Compare this with the remainder term from an STL decomposition of `aus_arrivals_jap`.* *What do you observe?*
+
+<hr>
+
+```{r}
+set.seed(42)
+
+white_noise <- 
+  tsibble(
+    x = 1:200,
+    y = rnorm(200),
+    index = x
+  )
+
+white_noise |> autoplot()
+white_noise |> ACF() |> autoplot()
+```
+
+The spikes of the ACF seem like random fluctations. They are also small in magnitude. Note that the blue horizontal lines are 95% confidence regions for the spikes if this were an ACF plot for a white noise time series. In other words, we should expect at most 5% of the spikes to exceed the blue lines, which is indeed the case here.
+
+Let us now consider the ACF plots for the remainder component for the STL decompositions of two time series.
+
+```{r}
+aus_arrivals |>
+  filter(Origin == "Japan") |>
+  model(STL(Arrivals ~ trend() + season())) |>
+  components() |>
+  ACF(remainder) |>
+  autoplot()
+```
+
+```{r}
+#| message: FALSE
+#| warning: FALSE
+#| fig-cap: Energy demand in Victoria, Australia in January and February 2013, measured half-hourly.
+#| label: fig-decomposition-elec
+
+vic_elec |>
+    filter(year(Time) == 2013, month(Time) %in% c(1,2)) |> 
+    model(
+        STL(Demand ~ trend() + 
+        season(period = 48 * 7) +
+        season(period = 48))) |>
+    components() |>
+  ACF(remainder) |>
+  autoplot()
+
+```
+
+These plots are quite different from the one obtained from white noise. This reveals that the remainder component in a decomposition can be different from white noise.
+
+## 2. Summary statistics
+
+Glance through the summary statistics described in [Chapter 4.4](https://otexts.com/fpp3/other-features.html) of Hyndman and Athanasopoulos (2021). What do the following summary statistics compute?
+
+-   Strength of trend
+-   Strength of seasonality
+-   `shift_level_max`
+-   `shift_level_index`
+-   `var_tiled_var`
+
+When would they be useful?
+
+## 3. EDA with summary statistics
+
+*The follow code snippet generates summary statistics for the various time series* *in the `tourism` dataset.*
+
+```{r}
+#| eval: FALSE
+tourism_features <- tourism |>
+  features(Trips, feature_set(pkgs = "feasts"))
+```
+
+*Make a scatter plot of seasonal strength against trend strength and color the* *points according to `Purpose`. What can you tell from the plot?*
+
+*Perform PCA on the `tourism_features` dataframe and make a scatter plot of the* *first two PCs. What do you observe?*
+
+<hr>
+
+```{r}
+# Takes awhile to run
+tourism_features <- tourism |>
+  features(Trips, feature_set(pkgs = "feasts"))
+tourism_features
+```
+
+```{r}
+tourism_features |>
+  ggplot(aes(x = trend_strength, 
+             y = seasonal_strength_year,
+             color = Purpose)) +
+  geom_point()
+```
+
+The description of the `tourism` dataset says that it counts the quarterly overnight trips from 1998 Q1 to 2016 Q4 across Australia. There are about 304 such time series, one for every region in Australia and for one of 4 types of travel purposes. It seems that the time series of trips for holiday travel tend to be have high seasonal strength compared to other types of trips. It also seems that there almost all time series have have fairly strong trend and seasonal strength.
+
+We now perform PCA. [^1]
+
+[^1]: PCA is not part of the scope of this course. This is simply for illustrative purposes on what can be done as part of EDA with summary statistics.
+
+```{r}
+pcs <- tourism_features |>
+  select(-State, -Region, -Purpose) |>
+  prcomp(scale = TRUE) |>
+  augment(tourism_features)
+pcs |>
+  ggplot(aes(x = .fittedPC1, y = .fittedPC2, col = Purpose)) +
+  geom_point() +
+  theme(aspect.ratio = 1)
+```
+
+Here, we also see a separation between the time series for holiday travel and other time series. We now inspect some of the outlier time series, i.e. those that have especially large values for the first PC.
+
+```{r}
+pcs |> 
+  filter(.fittedPC1 > 10) |>
+  left_join(tourism) |>
+  as_tsibble(index = Quarter, key = c(Region, State, Purpose)) |>
+  ggplot(aes(x = Quarter, y = Trips)) + 
+  geom_line() + 
+  facet_wrap(~ Region)
+```
+
+Potential reasons why these are outliers:
+
+-   Holiday visits to the south coast of NSW is highly seasonal but has almost no trend, whereas most holiday destinations in Australia show some trend over time.
+
+-   Melbourne is an unusual holiday destination because it has almost no seasonality, whereas most holiday destinations in Australia have highly seasonal tourism.
+
+-   The north western corner of Western Australia is unusual because it shows an increase in business tourism in the last few years of data, but little or no seasonality.
+
+-   The south western corner of Western Australia is unusual because it shows both an increase in holiday tourism in the last few years of data and a high level of seasonality.
+
+## 4. Seasonal periods and frequencies
+
+Consider the time series $(y_t)$ generated using the following code snippet.
+
+```{r}
+y_dat <- tibble(t = 1:100,
+       y = t %% 10) |>
+  as_tsibble(index = t)
+```
+
+Plot a periodogram for $(y_t)$. What periods do the peaks correspond to? Why are there multiple peaks when $(y_t)$ was defined using a seasonal period of 10?
+
+```{r}
+y_dat |> autoplot(y)
+```
+
+```{r}
+y_dat$y |> periodogram()
+```
+
+The frequencies are 0.1, 0.2, 0.3, 0.4, and 0.5. The periods are 10, 5, 3.3, 2.5, 2.
+
+The periodogram values measure the correlation of the time series with *sinusoidal* functions. Since $(y_t)$ is not sinusoidal, it requires sinusoidal functions of multiple frequencies to build up its waveform. However, the frequencies required are all multiples of the overall waveform frequencies (0.1). Put another way, their periods are all divisors of the period of $(y_t)$.
+
+## 5. Periodogram and filters
+
+Consider tourist arrivals to Australia from the UK, contained in the `aus_arrivals` dataset.
+
+a\. Plot a periodogram for the time series of arrivals from UK. Where are the peaks?
+
+b\. Apply a moving average of window size 4 to the time series. What happens to the periodogram?
+
+c\. Apply a difference transformation to the time series. What happens to the periodogram?
+
+```{r}
+aus_arrivals |>
+  filter(Origin == "UK") |>
+  pull(Arrivals) |>
+  periodogram(max_freq = 0.5)
+```
+
+Peaks are around 0.008 and around 0.25.
+
+```{r}
+aus_arrivals |>
+  filter(Origin == "UK") |>
+  mutate(ArrivalsMA4 = slide_dbl(Arrivals, mean, .before = 2, .after = 1)) |>
+  pull(ArrivalsMA4) |>
+  periodogram()
+```
+
+The peak at 0.25 gets removed.
+
+```{r}
+aus_arrivals |>
+  filter(Origin == "UK") |>
+  mutate(ArrivalsDiff = difference(Arrivals, 1)) |>
+  filter(!is.na(ArrivalsDiff)) |>
+  pull(ArrivalsDiff) |>
+  periodogram()
+```
+
+The peaks for low frequencies get removed.
