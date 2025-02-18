@@ -1,0 +1,43 @@
+---
+title: "Week 5 Demonstration"
+format: html
+editor: visual
+---
+
+## Set up
+
+```{r}
+#| message: FALSE
+library(fpp3)
+library(tidyverse)
+library(slider)
+library(gridExtra)
+```
+
+## 1. Holt linear method and transformations
+
+Forecast China's GDP from the `global_economy` data set using the Holt linear trend method. Experiment with damping and Box-Cox transformations. Try to develop an intuition of what each is doing to the forecasts.
+
+## 2. Cross-validation
+
+Perform cross-validation for the models identified in Q1. How do their relative performance change as we vary the forecast horizon?
+
+## 3. ETS and decomposition
+
+a.  Fit a Holt-Winters multiplicative model to the diabetes dataset. Plot the model components. How can we interpret the components?
+b.  Fit a Holt-Winters additive model to a log transformed version of the diabetes dataset. Plot the model components. Why do the components have very different values compared to the multiplicative case?
+c.  How is this decomposition different from STL?
+
+## 4. Model parameters
+
+a.  For the models fit in Q1, how many parameters does each model have?
+b.  How are the parameters fitted?
+c.  How can we extract the model parameters?
+d.  How can you interpret the fitted paramters?
+
+## 5. Model selection
+
+a.  What happens when no formula is provided to `ETS`? Try this with the `gtemp_both` time series from the `astsa` package.
+b.  What happens when you filter the time series to before 1950?
+c.  What happens when you filter to before 2010?
+d.  Interpret the model parameters.
