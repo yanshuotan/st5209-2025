@@ -1,0 +1,198 @@
+---
+title: "Week 5 Demonstration"
+format: html
+editor: visual
+---
+
+## Set up
+
+```{r}
+#| message: FALSE
+library(fpp3)
+library(tidyverse)
+library(slider)
+library(gridExtra)
+```
+
+## 1. Holt linear method and transformations
+
+Forecast China's GDP from the `global_economy` data set using the Holt linear trend method. Experiment with damping and Box-Cox transformations. Try to develop an intuition of what each is doing to the forecasts.
+
+------------------------------------------------------------------------
+
+First, create the filtered dataset and plot it.
+
+```{r}
+china_gdp <- global_economy |>
+  filter(Country == "China") |>
+  select(Year, GDP)
+
+china_gdp |> autoplot(GDP)
+```
+
+Seems like there is an exponential trend. Since Holt's method extrapolates the trend linearly, it makes sense to transform the time series so that the trend looks linear. A Box-Cox transformation with $\lambda = 0.2$ seems to do this reasonably well.
+
+```{r}
+china_gdp |>
+  autoplot(box_cox(GDP, 0.2))
+```
+
+We will fit four models, exploring the vanilla and damped versions of Holt's method, together with combining it with either the Box-Cox transform above or the log transform.
+
+```{r}
+fit <- china_gdp |>
+  model(
+    ets = ETS(GDP ~ error("A") + trend("A") + season("N")),
+    ets_damped = ETS(GDP ~ error("A") + trend("Ad") + season("N")),
+    ets_bc = ETS(box_cox(GDP, 0.2) ~ error("A") + trend("A") + season("N")),
+    ets_log = ETS(log(GDP) ~ error("A") + trend("A") + season("N"))
+  )
+
+fit
+```
+
+We now plot the 20 year forecasts for all 4 methods and compare them.
+
+```{r}
+fit |> 
+  forecast(h = "20 years") |>
+  autoplot(china_gdp, level = NULL)
+```
+
+Damping didn't seem to have a large effect on the forecasts, but it seems like the transformation did.
+
+## 2. Cross-validation
+
+Perform cross-validation for the models identified in Q1. How do their relative performance change as we vary the forecast horizon?
+
+```{r}
+china_cv <- china_gdp |>
+  stretch_tsibble(.step = 1, .init = 10) |>
+  model(
+    ets = ETS(GDP ~ error("A") + trend("A") + season("N")),
+    ets_damped = ETS(GDP ~ error("A") + trend("Ad") + season("N")),
+    ets_bc = ETS(box_cox(GDP, 0.2) ~ error("A") + trend("A") + season("N")),
+    ets_log = ETS(log(GDP) ~ error("A") + trend("A") + season("N"))
+  )
+```
+
+```{r}
+china_fc <- china_cv |>
+  forecast(h = 20) |>
+  group_by(.id, .model) |>
+  mutate(h = row_number()) |>
+  ungroup() |>
+  as_fable(response = "GDP", distribution = GDP)
+```
+
+```{r}
+results <- tibble(.model = colnames(fit))
+for (i in 1:10) {
+  tmp <- china_fc |> 
+  filter(h == 2 * i) |>
+  accuracy(china_gdp) |>
+  select(.model, MASE)
+  colnames(tmp) <- c(".model", as.character(2 * i))
+  results <- left_join(results, tmp)
+}
+results
+```
+
+The prediction performance of all methods decrease as the forecast horizon increases. It seems that basic Holt and Holt's damped method have the best performance for small horizons. However for larger time horizons, the transformed methods perform better.
+
+------------------------------------------------------------------------
+
+## 3. ETS and decomposition
+
+a.  Fit a Holt-Winters multiplicative model to the diabetes dataset. Plot the model components. How can we interpret the components?
+b.  Fit a Holt-Winters additive model to a log transformed version of the diabetes dataset. Plot the model components. Why do the components have very different values compared to the multiplicative case?
+c.  How is this decomposition different from STL?
+
+```{r}
+diabetes <- read_rds("../_data/cleaned/diabetes.rds")
+
+diabetes |> 
+  model(HoltWinters = ETS(TotalC ~ error("A") + trend("A") + season("M"))) |>
+  components() |>
+  autoplot()
+```
+
+The level is $l_t$, the slope is $b_t$, season is $s_t$. The remainder is given by the formula in the plot.
+
+```{r}
+diabetes |> 
+  model(HoltWinters = ETS(log(TotalC) ~ error("A") + trend("A") + season("A"))) |>
+  components() |>
+  autoplot()
+```
+
+The values are for the log transformed series, not the original. The seasonality is also additive in nature (hence fluctuates around 0, not 1).
+
+STL smooths out both present and past values in order to obtain the trend and seasonal components. ETS decompositions only make use of past values.
+
+## 4. Model parameters
+
+a.  For the models fit in Q1, how many parameters does each model have?
+b.  How are the parameters fitted?
+c.  How can we extract the model parameters?
+d.  How can you interpret the fitted paramters?
+
+Each model has 4 parameters, apart from the model with damping, which has 5.
+
+Parameters are fitted by reducing the sum of squared errors
+
+```{r}
+fit |>
+  tidy()
+```
+
+A large `phi` means that there is very little damping, i.e. the trend does not seem to taper off at any point.
+
+A large `alpha` means that the update to the level prioritizes the most recent observation.
+
+A large `beta` means that the update to the trend component prioritizes the most recent change in level.
+
+## 5. Model selection
+
+a.  What happens when no formula is provided to `ETS`? Try this with the `gtemp_both` time series from the `astsa` package.
+b.  What happens when you filter the time series to before 1950?
+c.  What happens when you filter to before 2010?
+d.  Interpret the model parameters.
+
+```{r}
+library(astsa)
+gtemp_both <- astsa::gtemp_both |>
+  as_tsibble() |>
+  rename(Year = index,
+         Temp = value)
+
+gtemp_fit <- gtemp_both |>
+  model(ETS(Temp))
+gtemp_fit
+```
+
+The `ETS` function has automatically performed *model selection*, and identified the type of ETS model that best fits the data.
+
+We see from the output mable that we get Holt's linear method with additive noise (A) and no damping (A). We can verify this by making a plot of the forecasts.
+
+```{r}
+gtemp_fit |>
+  forecast(h = 20) |>
+  autoplot(gtemp_both)
+```
+
+```{r}
+gtemp_both |>
+  filter_index(~ "2010") |>
+  model(ETS(Temp))
+```
+
+If we filter to before 1950, the type of model fit changes. We now get SES.
+
+If we filter to before 2010, we still get SES. The past behavior of the time series influences model choice.
+
+```{r}
+gtemp_fit |> tidy()
+```
+
+`alpha` is quite small. The time series is noisy, hence more smoothing is required.
