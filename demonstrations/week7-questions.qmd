@@ -39,9 +39,9 @@ d.  Why does the asymptotic normality theorem for the ACF not apply?
 
 Consider the linear trend method, the drift method, and the seasonal naive method.
 
-a\. What is the formula for the width of their prediction intervals as a function of the forecast horizon $h$?
+a.  What is the formula for the width of their prediction intervals as a function of the forecast horizon $h$?
 
-b\. Use all 3 methods to forecast for `aus_arrivals` and verify this is the case.
+b.  Use the first methods to forecast China's GDP in `global_economy` and verify this is the case. For seasonal naive, forecast arrivals from Japan in `aus_arrivals`.
 
 ## 4. Gaussian conditional distribution in 2D
 
@@ -56,12 +56,3 @@ a\. From first principles, derive the conditional distribution of $X_2$ given $X
 b\. How does the distribution change as $\rho$ changes? How about as $x_1$ changes?
 
 c\. Make a scatter plot of the joint distribution of $(X_1,X_2)$ for $\rho = 0.1$ and for $\rho = 0.9$ . Does this agree with your answer from (b) and (c)?
-
-## 5. Forecasting
-
-Let $(X_t)$ be a zero mean stationary process with $\rho_X(h) \neq 0$ for some $h$
-
-a.  Find $A$ minimizing $\mathbb{E}\lbrace (X_{n+h} - A X_n)^2 \rbrace$.
-b.  Use this to make a forecast for $X_{n+h}$ given $X_1,\ldots,X_n$.
-c.  What is the MSE for the forecast?
-d.  What is the consequence of this for ACF values?
