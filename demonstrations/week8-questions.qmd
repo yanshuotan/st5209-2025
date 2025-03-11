@@ -1,0 +1,57 @@
+---
+title: "Week 8 Demonstration"
+format: html
+editor: visual
+---
+
+## Set up
+
+```{r}
+#| message: FALSE
+library(fpp3)
+library(tidyverse)
+library(slider)
+library(gridExtra)
+```
+
+## 1. Residual analysis
+
+a.  What is the difference between innovation residuals and regular residuals? Why do we perform residual analysis on the former rather than the latter?
+b.  Starting with the following code snippet, fit several models to the Australian takeaway turnover time series and analyze their residuals. Which models have a good fit? Compare this with their CV error.
+
+```{r}
+takeaway <- aus_retail |>
+  filter(Industry == "Takeaway food services") |>
+  summarise(Turnover = sum(Turnover))
+```
+
+## 2. ACF for AR(2)
+
+a.  Using `ARMAacf`, plot the ACF for AR(2) models with the following coefficients:
+
+-   $(X_t)$: $\phi_1 = 1.5$, $\phi_2 = -0.55$
+-   $(Y_t)$: $\phi_1 = 1.5$, $\phi_2 = -0.75$
+
+b.  What is the qualitative behavior of the ACFs?
+c.  From the ACF plots, try to guess what patterns you may observe from the sample trajectories.
+
+## 3. Sample trajectories
+
+a.  Using `arima.sim()`, draw sample trajectories from the AR(2) models in Q2.
+b.  Fit AR(2) models to these generated time series using `ARIMA()`.
+c.  What are the fitted coefficients?
+d.  Plot the forecast curves.
+
+## 4. AR(2) solution
+
+Consider the AR(2) equation $$
+X_t = 1.5 X_{t-1} - 0.75 X_{t-2} + W_t.
+$$
+
+a.  What is the autoregressive polynomial?
+
+b.  What is the formula for the stationary solution?
+
+## 5. Nonlinear autoregressive models
+
+Fit a nonlinear AR model on the `globtemp` dataset. Compute its sum of squared residuals and compare it to that of a linear AR model.
