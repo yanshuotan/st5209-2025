@@ -51,7 +51,3 @@ $$
 a.  What is the autoregressive polynomial?
 
 b.  What is the formula for the stationary solution?
-
-## 5. Nonlinear autoregressive models
-
-Fit a nonlinear AR model on the `globtemp` dataset. Compute its sum of squared residuals and compare it to that of a linear AR model.

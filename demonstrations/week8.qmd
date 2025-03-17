@@ -1,0 +1,168 @@
+---
+title: "Week 8 Demonstration"
+format: html
+editor: visual
+---
+
+## Set up
+
+```{r}
+#| message: FALSE
+library(fpp3)
+library(tidyverse)
+library(slider)
+library(gridExtra)
+```
+
+## 1. Residual analysis
+
+a.  What is the difference between innovation residuals and regular residuals? Why do we perform residual analysis on the former rather than the latter?
+b.  Starting with the following code snippet, fit several models to the Australian takeaway turnover time series and analyze their residuals. Which models have a good fit? Compare this with their CV error.
+
+```{r}
+takeaway <- aus_retail |>
+  filter(Industry == "Takeaway food services") |>
+  summarise(Turnover = sum(Turnover))
+```
+
+------------------------------------------------------------------------
+
+If a transformation is performed, the innovation residuals are the one-step ahead forecasting errors, $y_t - \hat y_{t|t-1}$ for the transformed time series. The regular residuals are the errors for the original time series $x_t - \hat x_{t|t-1}$.
+
+We perform residual analysis for the former because the modeling assumption is that the innovation residuals are white noise.
+
+```{r}
+fit <- takeaway |> 
+  model(
+    naive = NAIVE(Turnover),
+    drift = NAIVE(Turnover ~ drift()),
+    mean = MEAN(Turnover),
+    snaive = SNAIVE(Turnover),
+    snaive_drift = SNAIVE(Turnover ~ drift()),
+    ets = ETS(Turnover),
+    ets_log = ETS(log(Turnover))
+  ) 
+
+fit |>
+  augment() |>
+  features(.innov, ljung_box, lag = 24) |>
+  arrange(lb_stat)
+```
+
+```{r}
+fit
+```
+
+```{r}
+takeaway |> 
+  stretch_tsibble(.step = 20, .init = 200) |>
+  model(
+    naive = NAIVE(Turnover),
+    drift = NAIVE(Turnover ~ drift()),
+    mean = MEAN(Turnover),
+    snaive = SNAIVE(Turnover),
+    snaive_drift = SNAIVE(Turnover ~ drift()),
+    ets = ETS(Turnover ~ error("M") + trend("Ad") + season("M")),
+    ets_log = ETS(log(Turnover) ~ error("A") + trend("A") + season("A"))
+  ) |>
+  forecast(h = 6) |>
+  accuracy(takeaway) |>
+  select(.model, RMSSE, MASE) |>
+  arrange(MASE)
+```
+
+The ranking via the LB test statistic and the CV error do not entirely match. Note that the LB statistic is a reflection of training error and measures "goodness of fit". Furthermore, the residuals from different methods may be on different scales and hence are not entirely comparable.
+
+## 2. ACF for AR(2)
+
+a.  Using `ARMAacf`, plot the ACF for AR(2) models with the following coefficients:
+
+-   $(X_t)$: $\phi_1 = 1.5$, $\phi_2 = -0.55$
+-   $(Y_t)$: $\phi_1 = 1.5$, $\phi_2 = -0.75$
+
+b.  What is the qualitative behavior of the ACFs?
+c.  From the ACF plots, try to guess what patterns you may observe from the sample trajectories.
+
+------------------------------------------------------------------------
+
+```{r}
+acf_dat <- tibble(
+    lag = 0:30, 
+    X_acf = ARMAacf(ar = c(1.5, -0.55), lag.max = 30),
+    Y_acf = ARMAacf(ar = c(1.5, -0.75), lag.max = 30))
+    
+plt1 <- acf_dat |> 
+    ggplot() + geom_linerange(aes(x = lag, ymax = X_acf, ymin = 0)) + 
+    xlab("") + ylab("acf (X)")
+plt2 <- acf_dat |> 
+    ggplot() + geom_linerange(aes(x = lag, ymax = Y_acf, ymin = 0)) + 
+    xlab("") + ylab("acf (Y)")
+
+grid.arrange(plt1, plt2, nrow = 2)
+```
+
+------------------------------------------------------------------------
+
+## 3. Sample trajectories
+
+a.  Using `arima.sim()`, draw sample trajectories from AR(2) models with different coefficients.
+b.  Fit AR(2) models to these generated time series using `ARIMA()`.
+c.  What are the fitted coefficients?
+d.  Plot the forecast curves.
+
+------------------------------------------------------------------------
+
+```{r}
+set.seed(5209)
+n <- 80
+h <- 20
+ar2_data <-
+    tibble(t = 1:n,
+           wn = rnorm(n),
+           X = arima.sim(model = list(ar = c(1.5, -0.55)),
+                         n = n, innov = wn),
+           Y = arima.sim(model = list(ar = c(1.5, -0.75)), 
+                         n = n, innov = wn)
+    ) |>
+    as_tsibble(index = t)
+```
+
+```{r}
+X_mod <- ar2_data |>
+  model(X = AR(X ~ order(2)))
+Y_mod <- ar2_data |>
+  model(Y = AR(Y ~ order(2)))
+
+X_mod |> tidy()
+Y_mod |> tidy()
+```
+
+```{r}
+
+plt1 <- X_mod |> 
+    forecast(h = h) |>
+    autoplot(ar2_data) + ylab("X")
+plt2 <- Y_mod |>
+    forecast(h = h) |>
+    autoplot(ar2_data) + ylab("Y")
+
+grid.arrange(plt1, plt2, nrow = 2)
+```
+
+------------------------------------------------------------------------
+
+## 4. AR(2) solution
+
+Consider the AR(2) equation $$
+X_t = 1.5 X_{t-1} - 0.75 X_{t-2} + W_t.
+$$
+
+a.  What is the autoregressive polynomial?
+
+b.  What is the formula for the stationary solution?
+
+------------------------------------------------------------------------
+
+![](../_images/ar2_soln_p1.png)
+
+![](../_images/ar2_soln_p2.png)
