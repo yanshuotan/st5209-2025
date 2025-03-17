@@ -41,15 +41,15 @@ a.  Fit the following exponential smoothing models on the entire time series:
     -   Holt-Winters with multiplicative noise and seasonality,
     -   Holt-Winters with a log transformation, with additive noise and seasonality,
     -   Holt-Winters with multiplicative noise and seasonality, and damping.
-b.  Make ACF plots for the innovation residuals of these three models. What can you say about stationarity of the residuals from the plot?
-c.  Calculate the p-value from a Ljung-Box test on the residuals with lag $h=8$. What can you say about the stationarity of the residuals from the p-value? What does this mean about the model?
+b.  Make ACF plots for the innovation residuals of these three models. Does this suggest that the residuals are drawn from a white noise model?
+c.  Calculate the p-value from a Ljung-Box test on the residuals with lag $h=8$. Does this suggest that the residuals are drawn from a white noise model? What does this mean about the fitted model?
 d.  Perform time series cross-validation for the three methods, using `.init = 50` and `.step = 10`, and with the forecast horizon $h=4$. Which method has the best RMSSE? How many data points is the error averaged over in total?
 
 ## 2. ETS parameters, prediction intervals
 
 The dataset `hh_budget` contains annual indicators of household budgets for a few countries.
 
-a.   Fit `ETS` on the time series comprising savings as a portion of household budgets in Canada. Do not specify what type of ETS model to fit, instead allowing the function to perform automatic model selection.
+a.  Fit `ETS` on the time series comprising savings as a portion of household budgets in Canada. Do not specify what type of ETS model to fit, instead allowing the function to perform automatic model selection.
 b.  Which ETS model was selected?
 c.  What are the fitted parameters of the model?
 d.  Based on the fitted parameters, what simple forecasting method is this similar to?
