@@ -1,0 +1,41 @@
+---
+title: "Linear Process Coefficients"
+format: pdf
+editor: visual
+---
+
+Given an AR(p) model $$
+X_t = \sum_{j=0}^\infty \psi_j W_{t-j},
+$$ write the coefficients in terms of the parameters $\phi_1,\phi_2,\ldots,\phi_p$.
+
+As stated in the theorem on existence and uniqueness of solutions, the coefficients are defined via the equation
+
+$$
+\phi(z)\left(\sum_{j=0}^\infty \psi_j z^j\right) = 1.
+$$
+
+Here, we treat all expressions symbolically, i.e. we do not care about series convergence. The left hand side is the product of a polynomial and a power series, which gives a power series:
+
+$$
+\sum_{j=0}^\infty c_j z^j
+$$
+
+The coefficients $c_0,c_1,\ldots$ can be defined by considering which terms in the product can combine to give an appropriate power of $z^j$. For instance, only the constant terms can multiply together to get a constant, so we have $c_0 = \psi_0$. To get a term with $z$, we need a multiply a constant term by one with $z$. This gives
+
+$$
+c_1 = \phi_1\psi_0 + \phi_0\psi_1.
+$$
+
+Generally, we have the formula
+
+$$
+c_k = \sum_{j=0}^p \phi_j\psi_{k-j}.
+$$
+
+If $\sum_{j=0}^\infty c_j z_j$ is equal to 1 as a power series, then we must have $c_0 = 1$, $c_k = 0$ for all $k \geq 1$. This allows us to solve for $\psi_j$ recursively since for $k=1,2,\ldots$, the resulting equation
+
+$$
+\sum_{j=0}^p \phi_j \psi_{k-j} = 0
+$$
+
+can be rewritten to express $\psi_k$ in terms of $\psi_{k-1}, \psi_{k-2},\ldots,\psi_0$.
