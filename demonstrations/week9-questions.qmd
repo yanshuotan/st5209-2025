@@ -20,7 +20,7 @@ Let $X_1,X_2,\ldots,X_n$ be a collection of random variables. For any random var
 
 ## 2. Recursive forecasting
 
-Fit an AR(2) model on the `gtemp_both` dataset filtered to years prior to 1951. Forecast the mean temperature deviation in 1955 using direct forecasting, and via recursive forecasting, showing that they are the same.
+Fit an AR(2) model on the `gtemp_both` dataset filtered to years prior to 1941. Forecast the mean temperature deviation in 1945 using direct forecasting, and via recursive forecasting, showing that they are the same.
 
 ## 3. Nonlinear autoregressive models
 
