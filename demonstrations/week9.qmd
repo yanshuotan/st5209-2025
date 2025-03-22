@@ -21,7 +21,7 @@ Let $X_1,X_2,\ldots,X_n$ be a collection of random variables. For any random var
 
 ------------------------------------------------------------------------
 
-![](images/BLP.jpeg)
+![](../_images/BLP.jpeg)
 
 ------------------------------------------------------------------------
 
