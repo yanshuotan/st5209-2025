@@ -50,7 +50,7 @@ b.  Write the conditional likelihood of this model, when conditioning on the val
 
 ## 3. Reversibility
 
-a.  Create a sample trajectory of length $n = 200$ from the AR(2) model from Problem 1 using `arima.sim()`.
+a.  Using `set.seed(5209)` to fix a random seed, create a sample trajectory of length $n = 500$ from the AR(2) model from Problem 1 using `arima.sim()`.
 
 b.  Reverse the time index of the vector you obtain using `rev()`.
 
