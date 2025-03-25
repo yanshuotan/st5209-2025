@@ -1,0 +1,56 @@
+---
+title: "Week 10 Demonstration"
+format: html
+editor: visual
+---
+
+## Set up
+
+```{r}
+#| message: FALSE
+library(fpp3)
+library(tidyverse)
+library(slider)
+library(gridExtra)
+```
+
+## 1. Pelt dataset
+
+Consider the `pelt` dataset. We have previously seen that the Lynx time series seems to have cyclic patterns with approximately 10 year cycles. in this question, we explore how ARMA can be used to provide better forecasts for this time series.
+
+a.  Compute an ACF plot for the time series and compare it with the lag plot we did earlier.
+b.  Inspect the ACF and PACF plots for the time series. What ARMA model would be appropriate for the time series?
+c.  Fit an ARMA model, allowing for automatic model selection. What is the order of the model selected?
+d.  Plot the forecast for the model.
+e.  What are the model parameters?
+f.  What are the roots of the AR polynomial? Does this agree with the periodicity you observe?
+g.  Fit a Holt-Winters method with seasonal period = 10.
+h.  Compare the accuracy of the two methods.
+
+## 2. Time series decomposition and ARMA
+
+Load the diabetes dataset as follows:
+
+```{r}
+diabetes <- read_rds("../_data/cleaned/diabetes.rds")
+```
+
+a.  Form a time series decomposition forecasting model using SES to model the seasonally adjusted time series and the seasonal naive method to model the seasonal component. Perform a residual analysis.
+b.  Form a time series decomposition forecasting model using SES to model the trend, the seasonal naive method to model the seasonal component, and an ARMA model to model the remainder component. Perform a residual analysis.
+c.  Does applying the ARMA model to the remainder component improve the fit?
+
+## 3. PACF
+
+a.  Use `ARMAacf()` to compute the PACF for the AR model $X_t = 0.5X_{t-1} + 0.1X_{t-2} + W_t$.
+b.  Explain why $\alpha(2) = 0.1$ but $\alpha(1) \neq 0.5$.
+c.  Show that the BLP of $X_t$ given $X_2,\ldots,X_{t-1}$ satisfies $\text{Cov}(X_t - \hat X_t, X_k) = 0$ for $k=2,\ldots,t-1$.
+d.  Using this orthogonality condition, understand the geometric interpretation of partial correlation [here](https://en.wikipedia.org/wiki/Partial_correlation#Geometrical).
+e.  Prove the regression coefficient interpretation of the PACF, i.e. equation (12.4) in the notes.
+
+## 4. AIC
+
+a.  What goes wrong when we choose $p$ and $q$ to be too big?
+b.  What is the expectation of the log likelihood?
+c.  Given an ARMA($p_0$,$q_0$) model, what is the expectation of AIC for the choice $p \geq p_0$ and $q \geq q_0$?
+d.  Given an ARMA($p_0$,$q_0$) model, what is the expectation of AIC for the choice $p < p_0$ or $q < q_0$?
+e.  What does this imply about using AIC for model selection?
