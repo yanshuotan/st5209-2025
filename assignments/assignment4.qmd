@@ -94,7 +94,7 @@ wn <- rnorm(n)
 xt <- arima.sim(model = list(ar = 0.5, ma = 0.5), innov = wn, n = n)
 ```
 
-a.  Fill in the following code snippet using equation (11.14) to generate a sequence `wn_hat`.
+a.  Fill in the following code snippet using equation (12.14) to generate a sequence `wn_hat`.
 
 ```{r}
 wn_hat <- rep(0, n)
