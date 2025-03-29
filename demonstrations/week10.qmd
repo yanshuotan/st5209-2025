@@ -1,0 +1,261 @@
+---
+title: "Week 10 Demonstration"
+format: html
+editor: visual
+---
+
+## Set up
+
+```{r}
+#| message: FALSE
+library(fpp3)
+library(tidyverse)
+library(slider)
+library(gridExtra)
+```
+
+## 1. Pelt dataset
+
+Consider the `pelt` dataset. We have previously seen that the Lynx time series seems to have cyclic patterns with approximately 10 year cycles. in this question, we explore how ARMA can be used to provide better forecasts for this time series.
+
+a.  Compute an ACF plot for the time series and compare it with the lag plot we did earlier.
+b.  Inspect the ACF and PACF plots for the time series. Guess what ARMA model might be appropriate for the time series.
+c.  Fit an ARMA model, allowing for automatic model selection. What is the order of the model selected?
+d.  What are the model parameters?
+e.  What are the roots of the AR polynomial? Does this agree with the periodicity you observe?
+f.  Plot the forecast for the model.
+g.  Fit a Holt-Winters method with seasonal period = 10.
+h.  What are the qualitative differences between the two forecasts curves?
+i.  Compare the accuracy of the two methods.
+
+------------------------------------------------------------------------
+
+```{r}
+pelt |>
+  gg_lag(Lynx, geom = "point", lags = 1:16)
+```
+
+```{r}
+pelt |>
+  ACF(Lynx) |> autoplot()
+```
+
+```{r}
+pelt |>
+  ACF(Lynx, type = "partial") |>
+  autoplot()
+```
+
+Since the ACF plot does not have a cut-off, this is not an MA model. The PACF seems to have a cut-off at lag 2, giving some evidence that AR(2) may be appropriate. However, there still seems to be some remaining sinusoidal pattern at larger lags, so we could also try AR(3) or ARMA(2, 1).
+
+```{r}
+lynx_fit <- pelt |>
+  model(arma = ARIMA(Lynx ~ pdq(d = 0)))
+lynx_fit
+```
+
+We obtain an ARMA(2, 1) model with a constant term.
+
+```{r}
+lynx_fit |> tidy()
+```
+
+AR polynomial is
+
+$$
+\phi(z) = 1 - 1.4851139z + 0.8468299z^2
+$$
+
+To calculate the roots, we use the function `polyroot()` :
+
+```{r}
+polyroot(c(1, -1.4851139, 0.8468299))
+```
+
+Writing the first root as $z = re^{i\theta}$, it has absolute value
+
+$$
+r = \sqrt{0.8768667^2 + 0.6418563^2} \approx 1.0867 > 1
+$$
+
+Furthermore, the argument $\theta$ is given by
+
+$$
+\theta = \arctan(0.6418563 / 0.8768667) \approx 0.63187
+$$
+
+```{r}
+theta <- atan(0.6418563 / 0.8768667)
+theta
+```
+
+The period is then $2\pi/\theta = 9.944 \approx 10$, which agrees with the ACF and lag plots.
+
+```{r}
+2 * pi / theta
+```
+
+```{r}
+lynx_fit |>
+  forecast(h = 50) |>
+  autoplot(pelt)
+```
+
+```{r}
+pelt_fit <- pelt |>
+  model(ets = ETS(Lynx ~ season("A", period = 10)))
+pelt_fit |>
+  forecast(h = 50) |>
+  autoplot(pelt)
+```
+
+The ARMA model's forecast tends towards the mean of the time series. Its forecast interval width tends to a constant. On the other hand, the ETS model's forecast maintains constant seasonality. Its forecast interval width grows over time.
+
+```{r}
+pelt |>
+  stretch_tsibble(.init = 20, .step = 10) |>
+  model(arma = ARIMA(Lynx ~ pdq(d = 0)),
+        ets = ETS(Lynx ~ season("A", period = 10))) |>
+  forecast(h = 10) |>
+  accuracy(pelt) |>
+  select(.model, MASE, RMSSE)
+```
+
+Seems like ARMA has smaller CV error.
+
+```{r}
+pelt |>
+  filter_index(. ~ "1910") |>
+  model(arma = ARIMA(Lynx ~ pdq(d = 0)),
+        ets = ETS(Lynx ~ season("A", period = 10))) |>
+  forecast(h = 25) |>
+  autoplot(pelt, level = NULL)
+```
+
+While ETS seems to better forecast the overall "shape" of the time series, its forecast can be completely out of phase with the true time series, leading to huge errors.
+
+## 2. Time series decomposition and ARMA
+
+Load the diabetes dataset as follows:
+
+```{r}
+diabetes <- read_rds("../_data/cleaned/diabetes.rds")
+```
+
+a.  Form a time series decomposition forecasting model using SES to model the seasonally adjusted time series and the seasonal naive method to model the seasonal component. Perform a residual analysis.
+b.  Form a time series decomposition forecasting model using SES to model the trend, the seasonal naive method to model the seasonal component, and an ARMA model to model the remainder component. Perform a residual analysis.
+c.  Does applying the ARMA model to the remainder component improve the fit?
+
+------------------------------------------------------------------------
+
+```{r}
+diabetes |>
+  model(decomposition_model(STL(log(TotalC)),
+                            ETS(season_adjust ~ season("N")),
+                            SNAIVE(season_year))) |>
+  gg_tsresiduals()
+```
+
+```{r}
+diabetes |>
+  model(decomposition_model(STL(log(TotalC)),
+                            ETS(trend ~ season("N")),
+                            SNAIVE(season_year),
+                            ARIMA(remainder ~ pdq(d = 0) + PDQ(0, 0, 0)))) |>
+  gg_tsresiduals()
+```
+
+It seems that even if we model the remainder component with ARMA, we still do not get a very good fit. Takeaway: This is not a magic bullet, sometimes it doesn't work.
+
+------------------------------------------------------------------------
+
+## 3. PACF
+
+a.  Use `ARMAacf()` to compute the PACF for the AR model $X_t = 0.5X_{t-1} + 0.1X_{t-2} + W_t$.
+b.  Explain why $\alpha(2) = 0.1$ but $\alpha(1) \neq 0.5$.
+c.  Show that the BLP of $X_t$ given $X_2,\ldots,X_{t-1}$ satisfies $\text{Cov}(X_t - \hat X_t, X_k) = 0$ for $k=2,\ldots,t-1$.
+d.  (optional) Using this orthogonality condition, understand the geometric interpretation of partial correlation [here](https://en.wikipedia.org/wiki/Partial_correlation#Geometrical).
+e.  (optional) Prove the regression coefficient interpretation of the PACF, i.e. equation (12.4) in the notes.
+
+------------------------------------------------------------------------
+
+```{r}
+ARMAacf(ar = c(0.5, 0.1), lag.max = 10, pacf = TRUE)
+```
+
+We have learnt that that $\alpha(2)$ is equal to the last AR coefficient, since $p=2$. However, $\alpha(1) = \rho(1) \neq 0.5$. It is the correlation between $X_t$ and $X_{t-1}$.
+
+Let $\hat X_t$ denote the BLP of $X_t$ given $X_2,\ldots,X_{t-1}$. We can write $\hat X_t = X_{2:t-1}^T\hat\beta$. We make use of the orthogonality condition of BLP to see that
+
+$$
+\nabla_{\beta} \mathbb{E}[(X_t - X_{2:t-1}^T\beta)^2]|_{\beta = \hat\beta} =0.
+$$
+
+Expanding our the left hand side, we get
+
+$$
+\mathbb{E}[(X_t - X_{2:t-1}^T\hat\beta)X_{2:t-1}^T] = 0
+$$
+
+This equation is equivalent to saying that $\text{Cov}(X_t - \hat X_t, X_k) = 0$ for $k=2,\ldots,t-1$.
+
+To prove the regression coefficient interpretation, first recall that we need to prove:
+
+$$
+\beta_X = \rho_{X,Y|Z}\cdot \sqrt{\frac{\text{Var}\lbrace Y - \hat Y\rbrace}{\text{Var} \lbrace X - \hat X\rbrace}}.
+$$
+
+where $\beta_X$ is the coefficient of $X$ in the regression of $Y$ on $(X,Z)$ jointly.
+
+For simplicity, assume that $Z$ is 1-dimensional, and then $X, Y, Z$ all have mean zero. Then $\hat X = \alpha Z$ and $\hat Y = \gamma Z$ and the regression coefficients of $Y$ given $X, Z$ are the unique values $\beta_X$ and $\beta_Z$ satisfying
+
+$$
+\mathbb{E}[(Y - \beta_X X - \beta_Z Z)X] = 0, \quad \mathbb{E}[(Y - \beta_X X - \beta_Z Z)Z] = 0
+$$
+
+Following the hint after (12.14) in the notes, we guess that $\tilde Y =\hat Y + \rho_{X,Y|Z}\cdot \sqrt{\frac{\text{Var}\lbrace Y - \hat Y\rbrace}{\text{Var} \lbrace X - \hat X\rbrace}}(X - \hat X)$ is the BLP. To check this, we observe
+
+$$
+\mathbb{E}[(Y-\tilde Y)Z] = \mathbb{E}[(Y-\hat Y)Z] + \rho_{X,Y|Z}\cdot \sqrt{\frac{\text{Var}\lbrace Y - \hat Y\rbrace}{\text{Var} \lbrace X - \hat X\rbrace}}\mathbb{E}[(X - \hat X)Z] = 0
+$$
+
+$$
+\begin{split}
+\mathbb{E}[(Y-\tilde Y)X] & = \mathbb{E}[(Y-\tilde Y)(X - \hat X)]\\
+& = \mathbb{E}\left[\left((Y-\hat Y) - \rho_{X,Y|Z}\cdot \sqrt{\frac{\text{Var}\lbrace Y - \hat Y\rbrace}{\text{Var} \lbrace X - \hat X\rbrace}}(X-\hat X)\right)(X - \hat X)\right] \\
+& = \mathbb{E}\left[\left((Y-\hat Y) - \frac{\text{Cov}\lbrace Y - \hat Y,X- \hat X\rbrace}{\text{Var} \lbrace X - \hat X\rbrace}(X-\hat X)\right)(X - \hat X)\right] \\
+& = 0
+\end{split}
+$$
+
+where the 2nd equality follows from the definition of $\rho_{X,Y|Z}$ and the last equality follows from the definition of a 1D regression coefficient.
+
+Finally, note that $\tilde Y$ is of the form $\tilde Y = \beta_X X + \beta_Z Z$, where
+
+$$
+\rho_{X,Y|Z}\cdot \sqrt{\frac{\text{Var}\lbrace Y - \hat Y\rbrace}{\text{Var} \lbrace X - \hat X\rbrace}}.
+$$
+
+as we wanted.
+
+------------------------------------------------------------------------
+
+## 4. AIC
+
+a.  What goes wrong when we choose $p$ and $q$ to be too big?
+b.  (optional) What is the expectation of the log likelihood?
+c.  (optional) Given an ARMA($p_0$,$q_0$) model, what is the expectation of AIC for the choice $p \geq p_0$ and $q \geq q_0$?
+d.  (optional) Given an ARMA($p_0$,$q_0$) model, what is the expectation of AIC for the choice $p < p_0$ or $q < q_0$?
+e.  What does this imply about using AIC for model selection?
+
+------------------------------------------------------------------------
+
+When $p$ and $q$ are too small, then the model will not be a good fit to the data, parameter estimates will be biased, and prediction accuracy will be suboptimal.
+
+When $p$ and $q$ are too big, then the variance in the parameter estimates will be too big (see example in lecture video, or in Shumway and Stoffer, 4th Ed, Example 3.35).
+
+For (b) - (c), refer to Appendix B in lecture notes.
+
+When $p < p_0$ or $q < q_0$, then this is not covered by Appendix B. In this case, the expectation is dominated by the bias incurred.
+
+As such, the expected AIC will be minimized at the correct model (choice of $p$ and $q$). It makes sense to use AIC for model selection.
