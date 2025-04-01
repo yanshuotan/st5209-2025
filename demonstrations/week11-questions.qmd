@@ -1,0 +1,96 @@
+---
+title: "Week 11 Demonstration"
+format: html
+editor: visual
+---
+
+## Set up
+
+```{r}
+#| message: FALSE
+library(fpp3)
+library(tidyverse)
+library(slider)
+library(gridExtra)
+```
+
+## 1. Unit root tests
+
+Load the sunspots data via the following code snippet.
+
+```{r}
+sunspots <- readRDS("../_data/cleaned/sunspots.rds")
+```
+
+a.  Before running the tests, do you expect the ADF test to have a small or big p-value?
+
+b.  Before running the tests, do you expect the KPSS test to have a small or big p-value?
+
+c.  Run the ADF test using `adf.test` and interpret the results.
+
+d.  Run the KPSS test using `kpss.test` and interpret the results.
+
+e.  What do the warnings in the test print out mean?
+
+## 2. ARIMA and the intercept term
+
+a.  Fit an ARMA model to the sunspots data, and inspect the constant term parameter. Is it equal to the mean of the time series? If not, how is it related to the mean?
+
+b.  If $(X_t)$ is ARIMA with $d=1$, how is the constant term related to the slope of the forecast curve?
+
+c.  If $(X_t)$ is ARIMA with $d=2$, how is the constant term related to the curvature of the forecast curve?
+
+d.  If $(X_t)$ is ARIMA with $d=2$, what happens when the constant term is equal to 0?
+
+## 3. Stochastic vs deterministic trends
+
+We have seen two methods of modeling trends:
+
+(i) Deterministic trend: $X_t = Y_t + \beta_0 + \beta_1 t$, where $Y_t$ is ARMA (stationary)
+(ii) Stochastic trend: $(I-B)X_t$ is ARMA, i.e. $X_t$ is ARIMA(p, 1, q) for some $p$ and $q$.
+
+In this question, we explore their differences, using the dataset `aus_airpassengers`.
+
+a.  Fit a deterministic trend model to the time series. What are the model parameters? Write out the modeling equation(s).
+
+b.  Fit a stochastic trend model to the time series. What are the model parameters? Write out the modeling equation(s).
+
+c.  Compare the two sets of modeling equations.
+
+d.  How do their forecasts differ?
+
+e.  When should you use a stochastic trend instead of a deterministic trend?
+
+## 4. Seasonal ARIMA
+
+a.  Consider the seasonal naive model $X_t = X_{t-m} + W_t$. Does this have a unit root?
+
+b.  After taking a first (non-seasonal) difference, what equation does the differenced time series satisfy? Does it have a unit root? Is it stationary?
+
+c.  To verify your conclusions in b), simulate from such a model and plot the differenced time series.
+
+d.  Argue why seasonal non-stationarity should not be tested using unit roots.
+
+e.  What does the `fable` package use to decide seasonal differences? Check the documentation of the function `unitroot_nsdiffs()`.
+
+## 5. Unit root tests at scale
+
+The `aus_livestock` dataset contains time series of meat production in Australia for different animals.
+
+a.  Use `features` together with `unitroot_kpss`, `unitroot_ndiffs`, and `unitroot_nsdiffs` to simultaneously obtain test statistic values, etc. for all time series for `Calves`.
+
+b.  Plot the log transform of the time series corresponding to Queensland, Tasmania, and Victoria between 2005 Jan and 2015 Jan.
+
+## 6. Applying ARIMA models to datasets
+
+Load the diabetes dataset as follows:
+
+```{r}
+diabetes <- read_rds("../_data/cleaned/diabetes.rds")
+```
+
+a.  Fit an ARIMA model to the dataset with a log transform.
+
+b.  Do a residual analysis. Is the model a good fit?
+
+c.  Compare with an ETS model using time series cross-validation.
