@@ -34,13 +34,15 @@ e.  What do the warnings in the test print out mean?
 
 ## 2. ARIMA and the intercept term
 
-a.  Fit an ARMA model to the sunspots data, and inspect the constant term parameter. Is it equal to the mean of the time series? If not, how is it related to the mean?
+a.  Fit an ARIMA model to the sunspots data. What model orders were chosen?
 
-b.  If $(X_t)$ is ARIMA with $d=1$, how is the constant term related to the slope of the forecast curve?
+b.  Inspect the constant term parameter. Is it equal to the mean of the time series? If not, how is it related to the mean?
 
-c.  If $(X_t)$ is ARIMA with $d=2$, how is the constant term related to the curvature of the forecast curve?
+c.  If $(X_t)$ is ARIMA with $d=1$, how is the constant term related to the slope of the forecast curve?
 
-d.  If $(X_t)$ is ARIMA with $d=2$, what happens when the constant term is equal to 0?
+d.  If $(X_t)$ is ARIMA with $d=2$, how is the constant term related to the curvature of the forecast curve?
+
+e.  If $(X_t)$ is ARIMA with $d=2$, what happens when the constant term is equal to 0?
 
 ## 3. Stochastic vs deterministic trends
 
@@ -80,17 +82,3 @@ The `aus_livestock` dataset contains time series of meat production in Australia
 a.  Use `features` together with `unitroot_kpss`, `unitroot_ndiffs`, and `unitroot_nsdiffs` to simultaneously obtain test statistic values, etc. for all time series for `Calves`.
 
 b.  Plot the log transform of the time series corresponding to Queensland, Tasmania, and Victoria between 2005 Jan and 2015 Jan.
-
-## 6. Applying ARIMA models to datasets
-
-Load the diabetes dataset as follows:
-
-```{r}
-diabetes <- read_rds("../_data/cleaned/diabetes.rds")
-```
-
-a.  Fit an ARIMA model to the dataset with a log transform.
-
-b.  Do a residual analysis. Is the model a good fit?
-
-c.  Compare with an ETS model using time series cross-validation.
