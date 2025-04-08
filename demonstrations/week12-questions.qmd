@@ -1,0 +1,83 @@
+---
+title: "Week 12 Demonstration"
+format: pdf
+editor: visual
+---
+
+## Set up
+
+```{r}
+#| message: FALSE
+library(fpp3)
+library(tidyverse)
+library(slider)
+library(gridExtra)
+```
+
+## 1. Finding code
+
+Look at the CRAN task views page to find what packages are available for state space models.
+
+## 2. Local linear trend model
+
+A local linear trend model is defined by the equations $$
+X_t = X_{t-1} + \alpha + W_t,
+$$ $$
+Y_t = X_t + V_t.
+$$ We can interpret this as the time series $(Y_t)$ comprising a "trend" component, modeled as a random walk with drift, and a random component $(V_t)$.
+
+a.  How can one write this in the form of a state space model?
+
+b.  Simulate a time series of length 50 from this model and plot the results.
+
+c.  Use the functions `SSModel()` and `SSMcustom()` in the `KFAS` package to specify a state space model. Read the documentation on how to do this.
+
+d.  Use `KFS()` to performing filtering, smoothing, and one-step-ahead forecasting for $(X_t)$. Read the documentation to understand the output of the function.
+
+e.  Plot the three time series against the true $(X_t)$ values and the observed values $(Y_t)$. Also plot level 0.95 confidence bands.
+
+f.  What are the differences between the three time series?
+
+## 3. Global temperature
+
+Consider the two time series `gtemp_land` and `gtemp_ocean` discussed in the lecture video. Load, and normalize these time series via the following code snippet.
+
+```{r}
+library(astsa)
+temp_dat <- tibble(ocean = gtemp_ocean / sd(gtemp_ocean), 
+                   land = gtemp_land / sd(gtemp_land)) 
+```
+
+a.  What is an appropriate state space model for these time series?
+
+b.  What are the parameters to be estimated?
+
+c.  Fit the parameters of the model using `fitSSM()`.
+
+d.  Use the fitted model to perform smoothing, and plot the resulting values, together with a level 0.95 confidence band and the two original time series.
+
+## 4. Biomarker monitoring
+
+Load the biomarker dataset using the following code snippet.
+
+```{r}
+biomarker <- 
+    tibble(Day = 1:length(WBC), 
+           WBC = WBC, 
+           PLT = PLT, 
+           HCT = HCT) |> 
+    as_tsibble(index = Day) |> 
+    mutate(across(everything(), ~replace(., . == 0, NA)))
+```
+
+a.  What is an appropriate state space model for these time series?
+
+b.  What are the parameters to be estimated?
+
+c.  Fit the parameters of the model using `fitSSM()`.
+
+d.  Use the fitted model to perform filtering, and plot the resulting values, together with a level 0.95 confidence band and the two original time series.
+
+e.  Interpret the fitted parameter values for $\Phi$.
+
+f.  Why do our results look different compared to those in Figure 6.6 in Shumway and Stoffer (page 315)?
