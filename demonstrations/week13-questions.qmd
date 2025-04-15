@@ -1,0 +1,88 @@
+---
+title: "Week 13 Demonstration"
+format: pdf
+editor: visual
+---
+
+## Set up
+
+```{r}
+#| message: FALSE
+library(fpp3)
+library(tidyverse)
+library(slider)
+library(gridExtra)
+```
+
+## 1. Nonlinear trend
+
+In this problem, we will analyze the `boston_marathon` dataset, which records the winning times for the race from 1897 to 2019 (across several categories). We will focus on the men's event from 1924 onwards. Use the following code snippet to extract the relevant time series.
+
+```{r}
+boston_men <- boston_marathon |>
+  filter(Year >= 1924) |>
+  filter(Event == "Men's open division") |>
+  mutate(Minutes = as.numeric(Time)/60)
+```
+
+a.  Make a time plot of the time series.
+
+b.  If you were fitting a piecewise linear trend, where would you place the knots?
+
+c.  Fit three models: (i) A linear trend model, (ii) An exponential trend model, (iii) A piecewise linear trend model with the knots selected in b).
+
+d.  Plot the forecasts of all three methods and comment.
+
+e.  Compare the AICc values of the models.
+
+f.  Comment on why it may or may not be fair to select from these models using AICc.
+
+## 2. Scenario-based forecasting
+
+Consider the `us_change` dataset, which comprises percentage changes in quarterly personal consumption expenditure, personal disposable income, production, savings and the unemployment rate for the US from 1970 to 2016. Imagine you are a policy maker and would like to know what would happen to change in consumption under two different scenarios for change in income, savings, and unemployment.
+
+a.  Fit a time series regression model of Consumption on Income, Savings, and Unemployment (we refer to the various time series by their column names). What are the fitted coefficients?
+
+b.  We want to examine two scenarios for 2019 Q3 to 2020 Q2 (next 4 quarters). Under scenario 1, there will be a constant growth of 1% and 0.5% respectively for income and savings, with no change in unemployment. Under scenario 2, there will be a constant decrease of 1% and 0.5% respectively for income and savings, with no change in unemployment. Create tsibbles with these values using the `new_data()` function.
+
+c.  Forecast change in consumption under the two scenarios in b). Plot and interpret your results.
+
+d.  When performing the analysis in c), did we view the model in a) as a predictive model or as a causal model?
+
+## 3. Multiple seasonality
+
+Consider the `bank_calls` dataset, which records the number of calls to a North American commercial bank per 5-minute interval between 7:00am and 9:05pm each weekday over a 33 week period. For computational tractability, we restrict the time series to the first 4 weeks.
+
+```{r}
+#| warning: FALSE
+bank_calls_filtered <- bank_calls |>
+  filter_index(~ "2003-03-30")
+```
+
+a.  Make a time plot. What types of seasonality do you observe?
+
+b.  There are many gaps in the time series so we use the following snippet to index according to the observation number.
+
+```{r}
+calls <- bank_calls_filtered |>
+  mutate(t = row_number()) |>
+  update_tsibble(index = t, regular = TRUE)
+```
+
+c.  Under this indexing, what are the periods of the seasonality?
+
+d.  Apply STL decomposition with these seasonal periods. Which seasonality is stronger?
+
+e.  Fit a dynamic harmonic regression model to this time series and compare its prediction performance with time series regression with seasonal dummies as well as DHR without an ARIMA terms.
+
+## 4. Electricity demand forecasting
+
+Consider the `vic_elec` dataset, which measures the half-hourly electricity demand in Victoria, Australia, between 2012 and 2014. The time series has daily, weekly, and yearly seasonality. Furthermore, it also has two other covariates, measuring the daily temperature, and a dummy for public holidays. Let us use all this information to build a forecasting model.
+
+a.  Create a dummy for whether the day is a working day.
+
+b.  Make a scatter plot of Demand against Temperature, categorized according to whether the day is a working day. What do you observe?
+
+c.  Fit a dynamic harmonic regression model for Demand, using a quadratic function of the Temperature and the working day dummy as predictors.
+
+d.  Forecast the temperature for the next week.
