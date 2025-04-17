@@ -1,0 +1,248 @@
+---
+title: "Week 13 Demonstration"
+format: pdf
+editor: visual
+---
+
+## Set up
+
+```{r}
+#| message: FALSE
+library(fpp3)
+library(tidyverse)
+library(slider)
+library(gridExtra)
+```
+
+## 1. Nonlinear trend
+
+In this problem, we will analyze the `boston_marathon` dataset, which records the winning times for the race from 1897 to 2019 (across several categories). We will focus on the men's event from 1924 onwards. Use the following code snippet to extract the relevant time series.
+
+```{r}
+boston_men <- boston_marathon |>
+  filter(Year >= 1924) |>
+  filter(Event == "Men's open division") |>
+  mutate(Minutes = as.numeric(Time)/60)
+```
+
+a.  Make a time plot of the time series.
+
+b.  If you were fitting a piecewise linear trend, where would you place the knots?
+
+c.  Fit three models: (i) A linear trend model, (ii) An exponential trend model, (iii) A piecewise linear trend model with the knots selected in b).
+
+d.  Plot the forecasts of all three methods and comment.
+
+e.  Compare the AICc values of the models.
+
+f.  Comment on why it may or may not be fair to select from these models using AICc.
+
+------------------------------------------------------------------------
+
+```{r}
+boston_men |>
+  autoplot(Minutes)
+```
+
+The knots should be placed where the slope changes. In this case, at 1950 and 1980.
+
+```{r}
+boston_fit <- boston_men |>
+  model(
+    linear = TSLM(Minutes ~ trend()),
+    exponential = TSLM(log(Minutes) ~ trend()),
+    piecewise = TSLM(Minutes ~ trend(knots = c(1950, 1980)))
+  )
+
+boston_fit |>
+  forecast(h = 10) |>
+  autoplot(boston_men) + 
+  geom_line(data = augment(boston_fit), 
+            aes(x = Year, y = .fitted, color = .model))
+```
+
+The piecewise linear trend seems to have the best fit. The forecasts for the linear and exponential trend methods seem to be biased downwards.
+
+```{r}
+boston_fit |>
+  glance()
+```
+
+The exponential trend model has the smallest AICc value. However, because it has performed a transformation of the observations, the likelihood function of the model is entirely different, and it does not make sense to compare its AICc value with those of the other models.
+
+The linear trend and piecewise linear trend models are indeed directly comparable. As expected, the piecewise linear trend model has a smaller AICc model. In general, however, we need to be careful. Because we selected the knots of the piecewise linear trend model *after* having seen the data. This is some additional degrees of freedom that was not accounted for and difficult to model. (Called researcher degrees of freedom).
+
+------------------------------------------------------------------------
+
+## 2. Scenario-based forecasting
+
+Consider the `us_change` dataset, which comprises percentage changes in quarterly personal consumption expenditure, personal disposable income, production, savings and the unemployment rate for the US from 1970 to 2016. Imagine you are a policy maker and would like to know what would happen to change in consumption under two different scenarios for change in income, savings, and unemployment.
+
+a.  Fit a time series regression model of Consumption on Income, Savings, and Unemployment (we refer to the various time series by their column names). What are the fitted coefficients?
+
+b.  We want to examine two scenarios for 2019 Q3 to 2020 Q2 (next 4 quarters). Under scenario 1, there will be a constant growth of 1% and 0.5% respectively for income and savings, with no change in unemployment. Under scenario 2, there will be a constant decrease of 1% and 0.5% respectively for income and savings, with no change in unemployment. Create tsibbles with these values using the `new_data()` function.
+
+c.  Forecast change in consumption under the two scenarios in b). Plot and interpret your results.
+
+d.  When performing the analysis in c), did we view the model in a) as a predictive model or as a causal model?
+
+------------------------------------------------------------------------
+
+```{r}
+us_fit <- us_change |>
+  model(
+    lm = TSLM(Consumption ~ Income + Savings + Unemployment)
+  )
+us_fit |> tidy()
+```
+
+```{r}
+scenario1_dat <-
+  new_data(us_change, 4) |>
+  mutate(Income = 1, Savings = 0.5, Unemployment = 0)
+
+scenario2_dat <-
+  new_data(us_change, 4) |>
+  mutate(Income = -1, Savings = -0.5, Unemployment = 0)
+```
+
+```{r}
+us_fit |>
+  forecast(new_data = scenario1_dat, h = 4) |>
+  autoplot(us_change)
+```
+
+```{r}
+us_fit |>
+  forecast(new_data = scenario2_dat, h = 4) |>
+  autoplot(us_change)
+```
+
+Under scenario 1, we forecast change in consumption to be about 0.996%. Under scenario 2, we forecast change in consumption to be about -0.464%.
+
+We viewed the model as a causal model. These scenarios involved intervening to change variables via policy, and we are interested in the true value of change in consumption (policy outcome).
+
+------------------------------------------------------------------------
+
+## 3. Multiple seasonality
+
+Consider the `bank_calls` dataset, which records the number of calls to a North American commercial bank per 5-minute interval between 7:00am and 9:05pm each weekday over a 33 week period. For computational tractability, we restrict the time series to the first 4 weeks.
+
+```{r}
+#| warning: FALSE
+bank_calls_filtered <- bank_calls |>
+  filter_index(~ "2003-03-30")
+```
+
+a.  Make a time plot. What types of seasonality do you observe?
+
+b.  There are many gaps in the time series so we use the following snippet to index according to the observation number.
+
+```{r}
+calls <- bank_calls_filtered |>
+  mutate(t = row_number()) |>
+  update_tsibble(index = t, regular = TRUE)
+```
+
+c.  Under this indexing, what are the periods of the seasonality?
+
+d.  Apply STL decomposition with these seasonal periods. Which seasonality is stronger?
+
+e.  Fit a dynamic harmonic regression model to this time series and compare its prediction performance with time series regression with seasonal dummies as well as DHR without an ARIMA terms.
+
+------------------------------------------------------------------------
+
+```{r}
+bank_calls_filtered |>
+  fill_gaps() |>
+  autoplot(Calls)
+```
+
+We observe daily and weekly seasonality. The daily seasonality has period 169. The weekly seasonality has period 169 \* 5 = 845.
+
+```{r}
+calls |> 
+  model(STL(Calls ~ season(period = 169) + season(period = 845))) |> 
+  components() |> 
+  autoplot()
+```
+
+Daily seasonality is stronger than weekly seasonality.
+
+```{r}
+calls_fit <- calls |> 
+  model(dhr = ARIMA(Calls ~ PDQ(0, 0, 0) + pdq(d = 0) + 
+                      fourier(period = 169, K = 10) + 
+                      fourier(period = 5 * 169, K = 5)),
+        seasonal_dummy = TSLM(Calls ~ season(5 * 169)),
+        hr = TSLM(Calls ~ fourier(period = 5 * 169, K = 100)))
+```
+
+```{r}
+calls_test <- bank_calls |>
+  mutate(t = row_number()) |>
+  update_tsibble(index = t, regular = TRUE)
+calls_fit |> forecast(h = 169 * 5) |> accuracy(calls_test)
+```
+
+------------------------------------------------------------------------
+
+## 4. Electricity demand forecasting
+
+Consider the `vic_elec` dataset, which measures the half-hourly electricity demand in Victoria, Australia, between 2012 and 2014. The time series has daily, weekly, and yearly seasonality. Furthermore, it also has two other covariates, measuring the daily temperature, and a dummy for public holidays. Let us use all this information to build a forecasting model.
+
+a.  Create a dummy for whether the day is a working day.
+
+b.  Make a scatter plot of Demand against Temperature, categorized according to whether the day is a working day. What do you observe?
+
+c.  Fit a dynamic harmonic regression model for Demand, using a quadratic function of the Temperature and the working day dummy as predictors.
+
+d.  Forecast the temperature for the next week.
+
+------------------------------------------------------------------------
+
+```{r}
+vic_elec
+```
+
+```{r}
+elec <- vic_elec |>
+  mutate(
+    DOW = wday(Date, label = TRUE),
+    WorkingDay = !Holiday & !(DOW %in% c("Sat", "Sun"))
+  )
+elec |>
+  ggplot(aes(x = Temperature, y = Demand, color = WorkingDay)) + geom_point(alpha = 0.6)
+```
+
+Demand has a nonlinear relationship with Temperature and is also affected by whether the day is a working day.
+
+```{r}
+elec_fit <- elec |>
+  model(ARIMA(Demand ~ WorkingDay + Temperature + 
+                I(Temperature ** 2) + 
+                fourier(period = "day", K = 10) + 
+                fourier(period = "week", K = 5) + 
+                fourier(period = "year", K = 3) +
+                pdq(6, 0, 0) + 
+                PDQ(0, 0, 0) + 1))
+```
+
+```{r}
+elec_newdata <- new_data(elec, 7*48) |>
+  mutate(
+    Temperature = tail(elec$Temperature, 7 * 48),
+    Date = lubridate::as_date(Time),
+    DOW = wday(Date, label = TRUE),
+    WorkingDay = (Date != "2015-01-01") &
+                   !(DOW %in% c("Sat", "Sun"))
+  )
+fc <- elec_fit |>
+  forecast(new_data = elec_newdata)
+
+fc |> autoplot(tail(elec, 48 * 14))
+```
+
+```{r}
+saveRDS(elec_fit, file = "elec_dhr_fit")
+```
