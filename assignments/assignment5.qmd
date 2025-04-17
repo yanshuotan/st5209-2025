@@ -56,7 +56,7 @@ a.  What are the null hypothesis and assumptions of the ADF test?
 
 b.  Is it possible for both the ADF and KPSS test applied to a dataset to have large p-values? Explain why or why not.
 
-c.  What are the AIC and AICc penalties for the model fitted in Q3?
+c.  What are the AIC and AICc penalties for the model fitted in Q2?
 
 d.  Fit an exponential smoothing model of your choice to `diabetes.rds`. Use `glance()` to view the log likelihood and AICc values of both this model and the ARIMA model from Q2.
 
