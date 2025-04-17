@@ -58,7 +58,7 @@ b.  Is it possible for both the ADF and KPSS test applied to a dataset to have l
 
 c.  What are the AIC and AICc penalties for the model fitted in Q3?
 
-d.  Fit an exponential smoothing model of your choice to `diabetes.rds`. Use `glance()` to view the log likelihood and AICc values of both this model and the ARIMA model from Q3.
+d.  Fit an exponential smoothing model of your choice to `diabetes.rds`. Use `glance()` to view the log likelihood and AICc values of both this model and the ARIMA model from Q2.
 
 e.  Can we say which method is a better fit to the data by comparing their log likelihood or AICc? Explain why or why not.
 
