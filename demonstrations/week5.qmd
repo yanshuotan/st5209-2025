@@ -1,6 +1,6 @@
 ---
 title: "Week 3 Demonstration"
-format: html
+format: pdf
 editor: visual
 ---
 
@@ -167,6 +167,7 @@ y_dat |> autoplot(y)
 ```
 
 ```{r}
+source("../_code/plot_util.R")
 y_dat$y |> periodogram()
 ```
 
